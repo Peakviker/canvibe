@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { isTauri } from '@/utils/isTauri';
 import { eventLogService } from './eventLog';
 import { FileCreatedEvent, FileModifiedEvent, ChangeRevertedEvent } from '@/types/events';
 import { gitService } from './git';
