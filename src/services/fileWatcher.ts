@@ -22,7 +22,13 @@ export class FileWatcherService {
   private async scanInitialFiles() {
     if (!this.projectPath) return;
 
+    if (!isTauri()) {
+      console.warn('File watching not available in web mode');
+      return;
+    }
+
     try {
+      const { invoke } = await import('@tauri-apps/api/tauri');
       const files = await invoke<string[]>('list_files', {
         path: this.projectPath,
       });
@@ -44,7 +50,12 @@ export class FileWatcherService {
   }
 
   private async getFileContent(filePath: string): Promise<string> {
+    if (!isTauri()) {
+      return '';
+    }
+
     try {
+      const { invoke } = await import('@tauri-apps/api/tauri');
       return await invoke<string>('read_file', {
         path: filePath,
       });
@@ -69,7 +80,12 @@ export class FileWatcherService {
     this.isWatching = true;
 
     const checkFiles = async () => {
+      if (!isTauri()) {
+        return;
+      }
+
       try {
+        const { invoke } = await import('@tauri-apps/api/tauri');
         const files = await invoke<string[]>('list_files', {
           path: this.projectPath,
         });

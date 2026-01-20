@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { open } from '@tauri-apps/api/dialog';
+import { isTauri } from '@/utils/isTauri';
 import { eventLogService } from '@/services/eventLog';
 import { gitService } from '@/services/git';
 import { fileWatcherService } from '@/services/fileWatcher';
@@ -15,17 +15,33 @@ export function ProjectSelector({ onProjectSelected }: ProjectSelectorProps) {
     try {
       setIsLoading(true);
       
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: 'Выберите проект',
-      });
+      let projectPath: string;
 
-      if (!selected || typeof selected !== 'string') {
-        return;
+      if (isTauri()) {
+        const { open } = await import('@tauri-apps/api/dialog');
+        const selected = await open({
+          directory: true,
+          multiple: false,
+          title: 'Выберите проект',
+        });
+
+        if (!selected || typeof selected !== 'string') {
+          setIsLoading(false);
+          return;
+        }
+
+        projectPath = selected;
+      } else {
+        // Веб-версия: используем ввод или localStorage
+        const saved = localStorage.getItem('canvibe_last_project');
+        const input = prompt('Введите путь к проекту (для демо используйте любой текст):', saved || 'demo-project');
+        if (!input) {
+          setIsLoading(false);
+          return;
+        }
+        projectPath = input;
+        localStorage.setItem('canvibe_last_project', input);
       }
-
-      const projectPath = selected;
 
       // Инициализируем сервисы
       await eventLogService.initialize(projectPath);

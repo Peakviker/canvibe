@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { isTauri } from '@/utils/isTauri';
 import { eventLogService } from './eventLog';
 import { 
   BranchCreatedEvent, 
@@ -36,7 +36,13 @@ export class GitService {
       throw new Error('GitService not initialized');
     }
 
+    if (!isTauri()) {
+      console.warn('Git operations not available in web mode');
+      return '';
+    }
+
     try {
+      const { invoke } = await import('@tauri-apps/api/tauri');
       const result = await invoke<string>('exec_git', {
         path: this.projectPath,
         args: command,

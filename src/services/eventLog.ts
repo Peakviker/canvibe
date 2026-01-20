@@ -1,7 +1,5 @@
 import { ThoughtEvent } from '@/types/events';
-import { invoke } from '@tauri-apps/api/tauri';
-import { readTextFile, writeTextFile, createDir, exists } from '@tauri-apps/api/fs';
-import { join } from '@tauri-apps/api/path';
+import { isTauri } from '@/utils/isTauri';
 
 const EVENT_LOG_DIR = '.thoughtlog';
 const EVENT_LOG_FILE = 'events.ndjson';
@@ -11,6 +9,15 @@ export class EventLogService {
 
   async initialize(projectPath: string) {
     this.projectPath = projectPath;
+
+    if (!isTauri()) {
+      console.warn('Running in web mode - file operations will use localStorage');
+      return;
+    }
+
+    const { readTextFile, writeTextFile, createDir, exists } = await import('@tauri-apps/api/fs');
+    const { join } = await import('@tauri-apps/api/path');
+
     const logDir = await join(projectPath, EVENT_LOG_DIR);
     const logFile = await join(logDir, EVENT_LOG_FILE);
 
@@ -21,7 +28,6 @@ export class EventLogService {
         await createDir(logDir, { recursive: true });
       }
     } catch (error) {
-      // Если не удалось проверить/создать, пробуем создать напрямую
       try {
         await createDir(logDir, { recursive: true });
       } catch (e) {
@@ -36,7 +42,6 @@ export class EventLogService {
         await writeTextFile(logFile, '');
       }
     } catch (error) {
-      // Если файла нет, создаём его
       try {
         await writeTextFile(logFile, '');
       } catch (e) {
@@ -49,19 +54,49 @@ export class EventLogService {
     if (!this.projectPath) {
       throw new Error('EventLog not initialized');
     }
+
+    if (!isTauri()) {
+      return 'localStorage://events';
+    }
+
+    const { join } = await import('@tauri-apps/api/path');
     return await join(this.projectPath, EVENT_LOG_DIR, EVENT_LOG_FILE);
   }
 
   async appendEvent(event: ThoughtEvent): Promise<void> {
+    if (!isTauri()) {
+      // Используем localStorage для веб-версии
+      const key = `canvibe_events_${this.projectPath || 'default'}`;
+      const existing = localStorage.getItem(key) || '';
+      localStorage.setItem(key, existing + JSON.stringify(event) + '\n');
+      return;
+    }
+
+    const { readTextFile, writeTextFile } = await import('@tauri-apps/api/fs');
     const logPath = await this.getLogPath();
     const line = JSON.stringify(event) + '\n';
     
-    // Append-only: добавляем в конец файла
     const existing = await readTextFile(logPath);
     await writeTextFile(logPath, existing + line);
   }
 
   async readEvents(): Promise<ThoughtEvent[]> {
+    if (!isTauri()) {
+      // Читаем из localStorage
+      const key = `canvibe_events_${this.projectPath || 'default'}`;
+      const content = localStorage.getItem(key) || '';
+      
+      if (!content.trim()) {
+        return [];
+      }
+
+      return content
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => JSON.parse(line) as ThoughtEvent);
+    }
+
+    const { readTextFile } = await import('@tauri-apps/api/fs');
     const logPath = await this.getLogPath();
     const content = await readTextFile(logPath);
     
