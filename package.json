@@ -16,7 +16,7 @@
     "react-dom": "^18.2.0",
     "@tauri-apps/api": "^1.5.0",
     "konva": "^9.2.0",
-    "react-konva": "^18.2.15",
+    "react-konva": "^18.2.10",
     "zustand": "^4.4.7",
     "date-fns": "^3.0.0"
   },
