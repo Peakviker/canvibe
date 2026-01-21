@@ -4,6 +4,8 @@ import { Node } from './Node';
 import { Edge } from './Edge';
 import { projectionService } from '@/services/projection';
 import { eventLogService } from '@/services/eventLog';
+import { canvibeApi } from '@/services/api';
+import { apiSyncService } from '@/services/sync';
 import { CanvasNode, CanvasEdge } from '@/types/nodes';
 
 export function Canvas() {
@@ -17,14 +19,55 @@ export function Canvas() {
   useEffect(() => {
     // Загружаем события и проецируем на холст
     loadProjection();
+    
+    // Запускаем автосинхронизацию API с event log
+    apiSyncService.startAutoSync(3000);
+    
+    // Автообновление каждые 2 секунды
+    const interval = setInterval(() => {
+      loadProjection();
+    }, 2000);
+    
+    return () => {
+      clearInterval(interval);
+      apiSyncService.stopAutoSync();
+    };
   }, [failureLens]);
 
   const loadProjection = async () => {
     try {
-      const events = await eventLogService.readEvents();
+      // Получаем события из обоих источников
+      const [localEvents, apiResponse] = await Promise.all([
+        eventLogService.readEvents().catch(() => []),
+        canvibeApi.getEvents().catch(() => ({ data: [] })),
+      ]);
+      
+      // Конвертируем API события в ThoughtEvent формат
+      const apiEvents: any[] = Array.isArray(apiResponse.data) 
+        ? apiResponse.data.map((e: any) => ({
+            id: e.id || `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: e.type || e.event_type || 'UNKNOWN',
+            timestamp: e.timestamp || new Date().toISOString(),
+            actor: e.actor || 'system',
+            context: e.context || { project: '', git_branch: null, git_commit: null },
+            payload: e.data || e.payload || {},
+          }))
+        : [];
+      
+      // Объединяем события, исключая дубликаты
+      const allEventsMap = new Map<string, any>();
+      [...localEvents, ...apiEvents].forEach(event => {
+        const id = (event as any).id || `${event.type}_${Date.now()}`;
+        if (!allEventsMap.has(id)) {
+          allEventsMap.set(id, event);
+        }
+      });
+      
+      const allEvents = Array.from(allEventsMap.values());
+      
       const projection = failureLens
-        ? projectionService.projectFailureLens(events)
-        : projectionService.projectEvents(events);
+        ? projectionService.projectFailureLens(allEvents)
+        : projectionService.projectEvents(allEvents);
       
       setNodes(projection.nodes);
       setEdges(projection.edges);

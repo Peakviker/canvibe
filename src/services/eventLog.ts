@@ -98,7 +98,7 @@ export class EventLogService {
 
     const { readTextFile } = await import('@tauri-apps/api/fs');
     const logPath = await this.getLogPath();
-    const content = await readTextFileApi(logPath);
+    const content = await readTextFile(logPath);
     
     if (!content.trim()) {
       return [];

@@ -82,10 +82,16 @@ async fn main() {
     let state_clone = app_state.clone();
     tokio::spawn(async move {
         let app = create_api_router(state_clone);
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:14141").await.unwrap();
-        println!("🚀 Canvibe API server running on http://127.0.0.1:14141");
-        println!("📡 Control tunnel is ready!");
-        let _ = axum::serve(listener, app).await;
+        match tokio::net::TcpListener::bind("127.0.0.1:14141").await {
+            Ok(listener) => {
+                println!("🚀 Canvibe API server running on http://127.0.0.1:14141");
+                println!("📡 Control tunnel is ready!");
+                let _ = axum::serve(listener, app).await;
+            }
+            Err(e) => {
+                eprintln!("Failed to start API server: {}", e);
+            }
+        }
     });
 
     // Запускаем Tauri приложение

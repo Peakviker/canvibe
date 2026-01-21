@@ -84,7 +84,7 @@ async fn create_event(
     let mut events = state.events.lock().await;
     
     let new_event = serde_json::json!({
-        "id": format!("evt_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4().simple().to_string().chars().take(8).collect::<String>()),
+        "id": format!("evt_{}_{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(8).collect::<String>()),
         "type": event.event_type,
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "data": event.data,
@@ -137,7 +137,7 @@ async fn create_node(
     
     let new_node = if !node.get("id").is_some() {
         let mut node = node.clone();
-        node["id"] = serde_json::json!(format!("node_{}", uuid::Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>()));
+        node["id"] = serde_json::json!(format!("node_{}", uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(8).collect::<String>()));
         node
     } else {
         node
