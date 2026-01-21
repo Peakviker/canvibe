@@ -1,5 +1,3 @@
-import { ThoughtEvent } from './events';
-
 export type NodeType =
   | 'intent'
   | 'ai_thought'

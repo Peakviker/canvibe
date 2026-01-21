@@ -15,7 +15,7 @@ export class EventLogService {
       return;
     }
 
-    const { readTextFile, writeTextFile, createDir, exists } = await import('@tauri-apps/api/fs');
+    const { writeTextFile, createDir, exists } = await import('@tauri-apps/api/fs');
     const { join } = await import('@tauri-apps/api/path');
 
     const logDir = await join(projectPath, EVENT_LOG_DIR);
@@ -92,13 +92,13 @@ export class EventLogService {
 
       return content
         .split('\n')
-        .filter(line => line.trim())
-        .map(line => JSON.parse(line) as ThoughtEvent);
+        .filter((line: string) => line.trim())
+        .map((line: string) => JSON.parse(line) as ThoughtEvent);
     }
 
     const { readTextFile } = await import('@tauri-apps/api/fs');
     const logPath = await this.getLogPath();
-    const content = await readTextFile(logPath);
+    const content = await readTextFileApi(logPath);
     
     if (!content.trim()) {
       return [];

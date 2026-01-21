@@ -4,6 +4,8 @@
 use std::process::Command;
 use std::path::PathBuf;
 use std::fs;
+mod api;
+use api::{AppState, create_api_router};
 
 #[tauri::command]
 fn exec_git(path: String, args: Vec<String>) -> Result<String, String> {
@@ -67,7 +69,26 @@ fn read_file(path: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to read file: {}", e))
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    // Создаём состояние приложения для API
+    let app_state = AppState {
+        events: std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new())),
+        nodes: std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new())),
+        canvas_state: std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+    };
+
+    // Запускаем API сервер в отдельной задаче
+    let state_clone = app_state.clone();
+    tokio::spawn(async move {
+        let app = create_api_router(state_clone);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:14141").await.unwrap();
+        println!("🚀 Canvibe API server running on http://127.0.0.1:14141");
+        println!("📡 Control tunnel is ready!");
+        let _ = axum::serve(listener, app).await;
+    });
+
+    // Запускаем Tauri приложение
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![exec_git, list_files, read_file])
         .run(tauri::generate_context!())

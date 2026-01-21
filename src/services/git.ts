@@ -2,10 +2,7 @@ import { isTauri } from '@/utils/isTauri';
 import { eventLogService } from './eventLog';
 import { 
   BranchCreatedEvent, 
-  CommitCreatedEvent, 
-  FileCreatedEvent, 
-  FileModifiedEvent,
-  ThoughtEvent 
+  CommitCreatedEvent
 } from '@/types/events';
 
 export interface GitBranch {
@@ -157,7 +154,6 @@ export class GitService {
     
     const checkBranches = async () => {
       const branches = await this.getBranches();
-      const currentBranchNames = new Set(branches.map(b => b.name));
 
       // Находим новые ветки
       for (const branch of branches) {

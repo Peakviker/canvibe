@@ -152,12 +152,11 @@ export class FileWatcherService {
     await eventLogService.appendEvent(event);
   }
 
-  private async handleFileModified(filePath: string, content: string) {
+  private async handleFileModified(filePath: string, _content: string) {
     const branch = await gitService.getCurrentBranch();
     const diff = await gitService.getDiff(filePath);
 
     // Подсчитываем изменения
-    const lines = content.split('\n');
     const added = diff.split('\n').filter(l => l.startsWith('+')).length;
     const removed = diff.split('\n').filter(l => l.startsWith('-')).length;
 
@@ -190,7 +189,7 @@ export class FileWatcherService {
       id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'CHANGE_REVERTED',
       timestamp: new Date().toISOString(),
-      actor: 'system',
+      actor: 'human' as const,
       context: {
         project: this.projectPath || '',
         git_branch: branch,

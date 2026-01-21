@@ -4,7 +4,6 @@ import { Node } from './Node';
 import { Edge } from './Edge';
 import { projectionService } from '@/services/projection';
 import { eventLogService } from '@/services/eventLog';
-import { ThoughtEvent } from '@/types/events';
 import { CanvasNode, CanvasEdge } from '@/types/nodes';
 
 export function Canvas() {
